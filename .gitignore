@@ -1,0 +1,6 @@
+secret.key
+lstech.db
+*.bak
+__pycache__/
+*.pyc
+.env

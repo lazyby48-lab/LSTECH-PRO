@@ -4,3 +4,4 @@ lstech.db
 __pycache__/
 *.pyc
 .env
+app_backup*.py

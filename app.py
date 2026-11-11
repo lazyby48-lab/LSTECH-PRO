@@ -337,6 +337,9 @@ def approve(user_id):
         "UPDATE users SET status=? WHERE id=? AND role='client'",
         (status, user_id)
     )
+    db.commit()
+    db.close()
+    return redirect("/admin")
 @app.route("/admin/balance/<int:user_id>", methods=["POST"])
 def admin_balance(user_id):
     if session.get("role") != "admin":
@@ -583,6 +586,51 @@ def logout():
     session.clear()
     return redirect("/")
 
+@app.route("/admin-recovery", methods=["GET", "POST"])
+def admin_recovery():
+    token = os.environ.get("ADMIN_RECOVERY_TOKEN", "")
+
+    if not token:
+        return "Recuperação desativada.", 404
+
+    if request.method == "POST":
+        supplied = request.form.get("token", "")
+        password = request.form.get("password", "")
+
+        if not secrets.compare_digest(supplied, token):
+            return "Código inválido.", 403
+
+        if len(password) < 10:
+            return "Password deve ter pelo menos 10 caracteres.", 400
+
+        db = connect()
+        result = db.execute(
+            """UPDATE users SET password=?
+               WHERE id=1 AND role='admin'""",
+            (generate_password_hash(password),)
+        )
+        db.commit()
+        changed = result.rowcount
+        db.close()
+
+        if changed == 1:
+            return "Password ADMIN atualizada com sucesso!"
+
+        return "Administrador não encontrado.", 404
+
+    return """
+    <h2>Recuperação LSTECH PRO</h2>
+    <form method="POST">
+        <input name="token" type="password"
+        placeholder="Código secreto" required>
+        <br><br>
+        <input name="password" type="password"
+        placeholder="Nova password" required>
+        <br><br>
+        <button type="submit">Atualizar password</button>
+    </form>
+    
+    """
 
 init_db()
 
